@@ -14,7 +14,10 @@ def ipv4_to_value(ipv4_addr):
     ipv4_addr: "1.2.3.4"
     return:    16909060  (Which is 0x01020304 hex)
     """
+    # Seperate on the period to get each byte chunk.
     splitByDot = ipv4_addr.split(".")
+
+    # Add up the shifted bits to get the final value
     numericValue = 0
     numericValue += int(splitByDot[0]) << 24
     numericValue += int(splitByDot[1]) << 16
@@ -39,12 +42,19 @@ def value_to_ipv4(addr):
     addr:   0x01020304 0b00000001000000100000001100000100 16909060
     return: "1.2.3.4"
     """
+
+    # Empty List to hold each 8 bit chunk
     ipAddressParts = []
+
+    # Grab each 8 bit chunk from the passed value, putting them into a list
     ipAddressParts.append(str((addr >> 24) & 0xff))
     ipAddressParts.append(str((addr >> 16) & 0xff))
     ipAddressParts.append(str((addr >> 8) & 0xff))
     ipAddressParts.append(str((addr >> 0) & 0xff))
+
+    # Join the list on a period.
     finalIPAddress = ".".join(ipAddressParts)
+
     return finalIPAddress
 
 def get_subnet_mask_value(slash):
@@ -66,11 +76,18 @@ def get_subnet_mask_value(slash):
     return: 0xfffffe00 0b11111111111111111111111000000000 4294966784
     """
 
+    # Obtain how many bits the mask covers.
     splitBySlash = slash.split("/")
     slashValue = splitBySlash[-1]
+
+    # Figure out how many 1's will cover the mask portion
     runOfOnes = ((1 << int(slashValue)) - 1)
+    # Figure out how many 0's will cover the rest of the 32 bit IP
     zeroesToAdd = 32 - int(slashValue)
+
+    # Shift the chunk of 1's over, creating 0's in their place.
     subnetMask = runOfOnes << zeroesToAdd
+
     return subnetMask
 
 
@@ -100,14 +117,17 @@ def ips_same_subnet(ip1, ip2, slash):
     slash:  "/16"
     return: False
     """
-    #print(hex(get_subnet_mask_value("/24")))
+
+    # Grab subnet mask, and ip values.
     subnetMask = get_subnet_mask_value(slash)
     ip1Value = ipv4_to_value(ip1)
     ip2Value = ipv4_to_value(ip2)
 
+    # Get the network number from each IP.
     ip1NetworkNum = ip1Value & subnetMask
     ip2NetworkNum = ip2Value & subnetMask
 
+    # Return whether they are the same or not.
     if ip1NetworkNum == ip2NetworkNum:
         return True
     else:
@@ -125,9 +145,7 @@ def get_network(ip_value, netmask):
     netmask:  0xffffff00
     return:   0x01020300
     """
-    #hostNumMask = ~ netmask
-    #print(bin(hostNumMask & 0xffffffff))
-    #print(ip_value & netmask)
+
     return ip_value & netmask
 
 def find_router_for_ip(routers, ip):
@@ -169,13 +187,17 @@ def find_router_for_ip(routers, ip):
     return: None
     """
 
+    # Default return value
     ipInSameSubnet = None
 
+    # For each IP in the router dictionary
     for ipInRouters in routers:
+        # Get the network mask for each of those IPs
         netMaskSlash = routers[ipInRouters].get("netmask")
+        # If they are on the same network
         if ips_same_subnet(ip, ipInRouters, netMaskSlash):
+            # change the default value to this IP
             ipInSameSubnet = ipInRouters
-        #print(ips_same_subnet(ip, ipInRouters, netMaskSlash))
 
     return ipInSameSubnet
 
