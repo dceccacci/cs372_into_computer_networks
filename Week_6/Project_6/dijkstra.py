@@ -60,9 +60,11 @@ def dijkstras_shortest_path(routers, src_ip, dest_ip):
     sourceRouter = find_router_for_ip(routers, src_ip)
     destinationRouter = find_router_for_ip(routers, dest_ip)
     to_visit, distance, parent = initialize_arrays(routers, sourceRouter)
-    distance[sourceRouter] = 0  # Starting node has 0 distance to itself
+
+    # Find path
     map_paths(to_visit, distance, routers, parent)
     path = find_path(sourceRouter, destinationRouter, parent)
+    
     return path
 
 
