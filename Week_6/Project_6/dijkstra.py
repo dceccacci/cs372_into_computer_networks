@@ -55,6 +55,7 @@ def dijkstras_shortest_path(routers, src_ip, dest_ip):
     function. Having it all built as a single wall of code is a recipe
     for madness.
     """
+    
     # Set up
     sourceRouter = find_router_for_ip(routers, src_ip)
     destinationRouter = find_router_for_ip(routers, dest_ip)
