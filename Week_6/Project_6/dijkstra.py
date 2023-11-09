@@ -84,7 +84,6 @@ def initialize_arrays(routers, sourceRouter):
     to_visit = set()
     # Holds the distance from any node to the start node
     distance = {}
-    distance[sourceRouter] = 0  # Starting node has 0 distance to itself
     # for any given node (key) lists the key for parent leading back to the starting node.
     parent = {}
 
@@ -95,6 +94,9 @@ def initialize_arrays(routers, sourceRouter):
             to_visit.add(connectedIP)
             distance[connectedIP] = math.inf
             parent[connectedIP] = None
+
+    # Make sure that the starting distance is set to 0
+    distance[sourceRouter] = 0
 
     return to_visit, distance, parent
 
@@ -110,7 +112,7 @@ def get_smallest_distance(to_visit, distance):
     """
     # Set up
     smallest_value = math.inf
-    smallest_values_IP = list(distance)[0]  # set to the first key, in case all remaining distances are the same
+    smallest_values_IP = None
 
     # for each node still need visiting, get the one with the smallest distance
     for keyIP in to_visit:
