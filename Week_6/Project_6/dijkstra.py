@@ -282,10 +282,7 @@ def ips_same_subnet(ip1, ip2, slash):
         ip2NetworkNum = ip2Value & subnetMask
 
         # Return whether they are the same or not.
-        if ip1NetworkNum == ip2NetworkNum:
-            return True
-        else:
-            return False
+        return  ip1NetworkNum == ip2NetworkNum
 
 def get_network(ip_value, netmask):
         """
