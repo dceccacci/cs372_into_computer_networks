@@ -45,11 +45,28 @@ def main(argv):
     s = socket.socket()
     s.connect((host, port))
 
+
+    # ========== Code added to introduce a disconnect ===============
+    disconnectCounter = 0
+    disconnectAt = random.randint(6, 12)
+    # ==========                                      ===============
+
+
     # Loop forever sending data at random time intervals
     while True:
         string_to_send = f"{prefix}: {random_string()}"
         string_bytes = string_to_send.encode()
         s.send(string_bytes)
+
+
+        # ========== Code added to introduce a disconnect ===============
+        disconnectCounter += 1
+        if disconnectCounter == disconnectAt:
+            nothing_bytes = f"".encode()
+            s.send(nothing_bytes)
+            break
+        # ==========                                      ===============
+
 
         delay_random_time()
 
