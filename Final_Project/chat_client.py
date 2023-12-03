@@ -1,40 +1,25 @@
 # Example usage:
 #
-# python select_client.py alice localhost 3490
-# python select_client.py bob localhost 3490
-# python select_client.py chris localhost 3490
+# python chat_client.py alice localhost 3490
+# python chat_client.py bob localhost 3490
+# python chat_client.py chris localhost 3490
 #
 # The first argument is a prefix that the server will print to make it
 # easier to tell the different clients apart. You can put anything
 # there.
-
 import sys
 import socket
-import time
-import random
+import json
+import threading
+from chatui import init_windows, read_command, print_message, end_windows
+
 
 def usage():
     print("usage: select_client.py prefix host port", file=sys.stderr)
 
-def random_string():
-    """ Returns a random string of ASCII printable characters. """
-
-    length = random.randrange(10, 20)
-    s = ""
-
-    for _ in range(length):
-        codepoint = random.randint(97, 122)
-        s += chr(codepoint)
-
-    return s
-
-def delay_random_time():
-    delay_seconds = random.uniform(1, 5)
-    time.sleep(delay_seconds)
-
 def main(argv):
     try:
-        prefix = argv[1]
+        nick = argv[1]
         host = argv[2]
         port = int(argv[3])
     except:
@@ -42,33 +27,122 @@ def main(argv):
         return 1
 
     # Make the client socket and connect
-    s = socket.socket()
-    s.connect((host, port))
+    serverSocket = socket.socket()
+    serverSocket.connect((host, port))
+    
+    # Send connect message to server
+    joinMessage = {"type": "hello", "nick": nick}
+    send_message(serverSocket, joinMessage)
 
+    # Start Chat Windows    
+    init_windows()
 
-    # ========== Code added to introduce a disconnect ===============
-    disconnectCounter = 0
-    disconnectAt = random.randint(6, 12)
-    # ==========                                      ===============
+    t1 = threading.Thread(target=runner, args=([serverSocket]), daemon=True)
+    t1.start()
 
-
-    # Loop forever sending data at random time intervals
     while True:
-        string_to_send = f"{prefix}: {random_string()}"
-        string_bytes = string_to_send.encode()
-        s.send(string_bytes)
-
-
-        # ========== Code added to introduce a disconnect ===============
-        disconnectCounter += 1
-        if disconnectCounter == disconnectAt:
-            nothing_bytes = f"".encode()
-            s.send(nothing_bytes)
+        try:
+            command = read_command(nick + "> ")
+        except:
             break
-        # ==========                                      ===============
+        
+        # Prepare the message to send
+        messageInput = command[0:]
+        messageToSend = {"type": "chat", "message": messageInput}
+        
+        # Send message to server
+        send_message(serverSocket, messageToSend)
+
+    end_windows()
+
+    
+def send_message(server, message):
+    # Encode Message
+    jsonMessage = json.dumps(message)
+    encodedMessage = jsonMessage.encode()
+    # Get and Encode length
+    messageSize = len(encodedMessage)
+    encodedMessageSize = messageSize.to_bytes(2, byteorder='big')
+    # Combine
+    fullPacket = encodedMessageSize + encodedMessage
+    
+    server.send(fullPacket)
+
+packet_buffer = b''
+
+def runner(serverSocket):
+    
+    global packet_buffer
+    
+    
+    while True:
+        message_packet = get_next_message_packet(packet_buffer, serverSocket)
+
+        if message_packet is None:
+            break
+
+        messageDecoded = extract_message(message_packet)
+        messageType = messageDecoded.get("type")
+        messageNick = messageDecoded.get("nick")
+        
+        if messageType == "join":
+            toChatWindow = f"*** {messageNick} has joined the chat"
+        elif messageType == "leave":
+            toChatWindow = f"*** {messageNick} has left the chat"
+        elif messageType == "chat":
+            message = messageDecoded.get("message")
+            toChatWindow = f"{messageNick}: {message}"
+
+        print_message(toChatWindow)
+        
 
 
-        delay_random_time()
+
+def get_next_message_packet(packet_buffer, serverSocket):
+    """
+    Return the next word packet from the stream.
+
+    The word packet consists of the encoded word length followed by the
+    UTF-8-encoded word.
+
+    Returns None if there are no more words, i.e. the server has hung
+    up.
+    """
+    while True:
+            # Start checking to see if the full packet is in the buffer
+            if len(packet_buffer) >= 2:
+                packetLength = int.from_bytes(packet_buffer[:2], "big")
+                
+                # Full Packet in buffer, Extract and Return
+                if len(packet_buffer) >= (packetLength + 2):
+                    fullPacket = packet_buffer[:packetLength + 2]
+                    packet_buffer = packet_buffer[packetLength + 2:]
+                    return fullPacket
+            
+            # Get new Data from Socket
+            newData = serverSocket.recv(4096)
+            
+            # No new Data recieved, Return None
+            if len(newData) == 0:
+                return None
+            
+            packet_buffer += newData
+
+def extract_message(packet):
+    """
+    Extract the message from a message packet.
+
+    packet: a message packet consisting of the encoded message length
+    followed by the UTF-8 message.
+
+    Returns the message decoded as Python native Data.
+    """
+
+    messageBytes = packet[2:]
+    messageDecoded = messageBytes.decode("ISO-8859-1")
+    message = json.loads(messageDecoded)
+    
+    return message
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
