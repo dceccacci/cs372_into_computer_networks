@@ -42,12 +42,15 @@ def main(argv):
 
     while True:
         try:
-            command = read_command(nick + "> ")
+            messageInput = read_command(nick + "> ")
         except:
             break
         
+        # Special Character Used, Action Needed
+        if messageInput[:1] == "/":
+            parseAction(messageInput)
+        
         # Prepare the message to send
-        messageInput = command[0:]
         messageToSend = {"type": "chat", "message": messageInput}
         
         # Send message to server
@@ -55,7 +58,10 @@ def main(argv):
 
     end_windows()
 
-    
+def parseAction(input):
+    if input[:2] == "/p":
+        sys.exit()
+
 def send_message(server, message):
     # Encode Message
     jsonMessage = json.dumps(message)
