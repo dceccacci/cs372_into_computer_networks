@@ -1,6 +1,6 @@
 #--------------------------------#
 # Example usage:                 #
-# python chat_server.py 3490     #
+# python chat_server.py 5732     #
 #--------------------------------#
 
 import sys
@@ -21,6 +21,10 @@ clientAlias = {}
     
 
 def run_server(port):
+    """
+        Runs the Chat Server. Accepts Packets from Clients then sends Packets to
+        all other connected clients based on the packet type.
+    """
     
     # Create and add the listening socket
     listenSocket = listen_socket(port)
@@ -81,48 +85,84 @@ def listen_socket(port):
 
 # --- Functions to Get / Add / Remove from  variables ---
 def get_socket_set():
+    """
+        Return the socket set
+    """
     return socketSet
 
 def add_to_socket_set(socket):
+    """
+        Add a socket to the socket set
+    """
     socketSet = get_socket_set()
     socketSet.add(socket)
     
 def remove_from_socket_set(socket):
+    """
+        Remove a socket from the socket set
+    """
     socketSet = get_socket_set()
     socketSet.remove(socket)
     pass
 
 def recv_buffer():
+    """
+        Return all buffers that holds the recieved data from clients
+    """
     return recvBuffer
 
 def get_buffer_from_recv_buffer(socket):
+    """
+        Return a specific buffer in the buffers array.
+    """
     buffer = recv_buffer()
     return buffer[socket]
     
 def add_connection_to_recv_buffer(connection):
+    """
+        Add a new buffer for a connection.
+    """
     recvBuffer = recv_buffer()
     recvBuffer[connection] = b''
 
 def remove_from_recv_buffer(socket):
+    """
+        Remove a buffer from the buffer array.
+    """
     recvBuffer = recv_buffer()
     recvBuffer.pop(socket)
 
 def client_alias():
+    """
+        Return the array of client aliases (nicknames)
+    """
     return clientAlias
 
 def add_alias(socket, alias):
+    """
+        Add an alias to the alias array
+    """
     allAliases = client_alias()
     allAliases[socket] = alias
 
 def get_alias(socket):
+    """
+        Return a specific client from the alias array.
+    """
     allAliases = client_alias()
     return allAliases[socket]
 
 def remove_from_client_alias(socket):
+    """
+        Remove an alias from the alias array.
+    """
     clientAlias = client_alias()
     clientAlias.pop(socket)
 
 def expected_packet_length():
+    """
+        Return the amount of bytes a packets length section is.
+    """
     return PACKET_LEN_SIZE
 # --- End of functions to Get / Add / Remove from  variables ---
 
@@ -132,10 +172,17 @@ def expected_packet_length():
 # ---- Functions to process Recv Packet -------------
 
 def get_data(socket):
+    """
+        Return the data that the client socket is sending.
+    """
     return socket.recv(4096)
 
 
 def process_recv(newData, buffer):
+    """
+        Takes new data and adds it to the buffer. If the buffer has a full packet,
+        it will return that complete packet as a Python native datatype.
+    """
     
     # Add data to the current buffer
     buffer += newData
@@ -154,14 +201,15 @@ def process_recv(newData, buffer):
 
 
 def extract_payload(buffer, expectedLength, packetLength):
+    """
+        Returns a python native data type from the byte payload in the buffer. 
+    """
     # Get payload after length bytes
     payloadBytes = buffer[expectedLength:]
     # Decode those bytes into Python native data
     payloadDecoded = payloadBytes.decode("ISO-8859-1")
-    print(f"\n Type: {type(payloadDecoded)} \n")
-    print(f"\n message: {payloadDecoded} \n")
     payloadDecoded = json.loads(payloadDecoded)
-    print(f"\n Type: {type(payloadDecoded)} \n")
+
 
     # Remove the packet from buffer
     buffer = buffer[(expectedLength + packetLength):]
@@ -173,10 +221,18 @@ def extract_payload(buffer, expectedLength, packetLength):
 
 # ---- Functions to process Payload -----
 def get_payload_type(payload):
+    """
+        Returns what the payloads type is.
+        example: "chat", "join", or "leave" 
+    """
     return payload.get("type")
 
 
 def transmit_disconnect(leavingSocket, listenSocket):
+    """
+        Create a message to be sent to all connected clients when a
+        client disconnects.
+    """
     # Create the leave message
     alias = get_alias(leavingSocket)
     message = {"type": "leave", "nick": alias}
@@ -186,6 +242,10 @@ def transmit_disconnect(leavingSocket, listenSocket):
             
             
 def transmit_connected(connectingSocket, listenSocket):
+    """
+        Create a message to be sent to all connected clients when a
+        client connects.
+    """
     # Get the socket set
     socketSet = get_socket_set()
     
@@ -198,6 +258,10 @@ def transmit_connected(connectingSocket, listenSocket):
 
 
 def transmit_message(TransmittingSocket, listenSocket, payload):
+    """
+        Create a message to be sent to all connected clients when a
+        client sends a chat message to the chat room.
+    """
 
     # Create the chat message
     alias = get_alias(TransmittingSocket)
@@ -209,6 +273,9 @@ def transmit_message(TransmittingSocket, listenSocket, payload):
 
 
 def transmit_to_clients(listenSocket, message):
+    """
+        Takes a message and transmits to all connected clients.
+    """
     # Get the socket set
     socketSet = get_socket_set()
     
@@ -237,7 +304,7 @@ def transmit_to_clients(listenSocket, message):
     
     
     
-    
+# Runs the server
 
 def usage():
     print("usage: chat_server.py port", file=sys.stderr)

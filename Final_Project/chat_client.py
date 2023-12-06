@@ -18,6 +18,10 @@ def usage():
     print("usage: select_client.py prefix host port", file=sys.stderr)
 
 def main(argv):
+    """
+        Create a chat UI that allows the user to chat with other users through
+        a chat server. Is able to both send and receive messages at the same time.
+    """
     try:
         nick = argv[1]
         host = argv[2]
@@ -37,6 +41,7 @@ def main(argv):
     # Start Chat Windows    
     init_windows()
 
+    # Create a thread that handles incomming messages from the server.
     t1 = threading.Thread(target=runner, args=([serverSocket]), daemon=True)
     t1.start()
 
@@ -59,10 +64,16 @@ def main(argv):
     end_windows()
 
 def parseAction(input):
+    """
+        Check to see if the user is trying to preform a special action.
+    """
     if input[:2] == "/p":
         sys.exit()
 
 def send_message(server, message):
+    """
+        Takes a string message, and converts it into bytes and send to the server.
+    """
     # Encode Message
     jsonMessage = json.dumps(message)
     encodedMessage = jsonMessage.encode()
@@ -77,20 +88,26 @@ def send_message(server, message):
 packet_buffer = b''
 
 def runner(serverSocket):
+    """
+        Prints incomming messages from the server to the chats UI window.
+    """
     
     global packet_buffer
     
     
     while True:
+        # Get a message from the server
         message_packet = get_next_message_packet(packet_buffer, serverSocket)
 
         if message_packet is None:
             break
 
+        # Get the messages type, and its nickname
         messageDecoded = extract_message(message_packet)
         messageType = messageDecoded.get("type")
         messageNick = messageDecoded.get("nick")
         
+        # Create a message depending on its type
         if messageType == "join":
             toChatWindow = f"*** {messageNick} has joined the chat"
         elif messageType == "leave":
@@ -99,6 +116,7 @@ def runner(serverSocket):
             message = messageDecoded.get("message")
             toChatWindow = f"{messageNick}: {message}"
 
+        # Send the message to the chat winow
         print_message(toChatWindow)
         
 
