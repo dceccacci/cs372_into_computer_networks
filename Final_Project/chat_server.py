@@ -291,9 +291,7 @@ def transmit_to_clients(listenSocket, message):
     # Send Packet
     for socket in socketSet:
         if socket is not listenSocket:
-            print(f'To: {socket.getpeername()} Packet: {fullPacket}')
             try: 
-                print('send successful')
                 socket.sendall(fullPacket)
             except:
                 # Socket already Disconnected
